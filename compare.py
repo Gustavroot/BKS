@@ -29,34 +29,34 @@ np.random.seed(12347)
 overall_verbosity = "FULL"
 
 # First, build the matrix to invert
-mat_type = "laplace"
+matType = "laplace"
 params_matrix = dict()
 # nx and ny represent dimensions of the lattice corresponding to this laplace matrix
-params_matrix['nx'] = 4
-params_matrix['ny'] = 4
-params_matrix['verbosity'] = overall_verbosity
-A = MatrixBuilder(mat_type, params_matrix)
+params_matrix['nx'] = 64
+params_matrix['ny'] = 64
+A = MatrixBuilder(matType, params_matrix)
 A.build()
 
-# Build rhs
-# TODO: change the following for an apropriate general build
-b = np.random.rand(A.N)
+# Build right hand sides, B_ysize corresponds to the number of right hand sides to be block-solved against
+B_xsize = A.getDimsY()
+B_ysize = 10
+B = np.random.rand(B_xsize, B_ysize)
 
 # Initial solution for the solves
-x0 = np.zeros(A.N, dtype=float)
+x0 = np.zeros(A.getDimsX(), dtype=float)
 
-# Use the different solvers
+# Use the different block krylov solvers
 
 #py_impls = ["nonblocked", "blocked_classic", "blocked_li"]
-py_impls = ["nonblocked", "blocked_li"]
+pyImpls = ["classical", "li"]
 
 use_py_modules = dict()
-use_py_modules['nonblocked'] = True
-use_py_modules['blocked_li'] = True
+use_py_modules['classical'] = True
+use_py_modules['li'] = True
 
-for solver_type in py_impls:
+for solverType in pyImpls:
 
-    print("\n------------\nSolving the " + mat_type + " matrix using the " + solver_type + " solver\n------------\n")
+    print("\n------------\nSolving the " + matType + " matrix using the " + solverType + " solver\n------------\n")
 
     # Build solver
     params_solver = dict()
@@ -64,10 +64,13 @@ for solver_type in py_impls:
     params_solver['verbosity'] = overall_verbosity
     params_solver['tol'] = 1e-6
     params_solver['test_after_solve'] = True
-    params_solver['use_py_modules'] = use_py_modules[solver_type]
-    k_solver = Solver('krylov', solver_type, params_solver)
+    params_solver['use_py_modules'] = use_py_modules[solverType]
+    params_solver['block_krylov_type'] = solverType
+    kSolver = Solver.create('krylov', solverType, params_solver)
 
-    sol = k_solver.solve(A,b,x0)
+    sol,execTime = kSolver.solve(A,B,x0)
+
+    print("Execution time for the <" + solverType + "> solver: " + str(execTime))
 
 #-------------------------------------------------------------
 

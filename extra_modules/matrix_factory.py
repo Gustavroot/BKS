@@ -1,34 +1,40 @@
 import numpy as np
 from scipy import sparse
+from math import sqrt
 
 class MatrixBuilder:
 
-    def __init__(self, which_matrix, params):
+    def __init__(self, whichMatrix, params):
 
         matrices_available = ['laplace']
 
-        if which_matrix not in matrices_available:
+        if whichMatrix not in matrices_available:
             raise Exception("The requested matrix is not available to build in our framework.")
 
         self.params = params
 
+        if ('nx' not in self.params) or ('ny' not in self.params):
+            raise Exception("Dimensions of the matrix needed.")
+
+        # Default params
+        self.verbosity = "FULL"
+
         # Unpack params
-        self.verbosity = self.params['verbosity']
+        if 'verbosity' in params:
+            self.verbosity = self.params['verbosity']
         self.nx = self.params['nx']
         self.ny = self.params['ny']
 
-        #if self.nx!=self.ny: raise Exception("Cannot construct/invert nonsquare matrices.")
+        # Some checks on self.nx and self.ny
+        if self.nx!=self.ny: raise Exception("Cannot construct/invert nonsquare matrices.")
+        if ((int(sqrt(self.nx)+0.5)**2)!=self.nx): raise Exception("We need nx and ny to be perfect squares.")
 
-        self.N = self.nx*self.ny
+        #self.N = self.nx*self.ny
 
-        if which_matrix == 'laplace':
+        if whichMatrix == 'laplace':
             self.mat_type = 'laplace'
             if self.verbosity == 'FULL':
-                print("\nConstructing the matrix of type " + which_matrix + ".")
-            elif self.verbosity == 'SILENT':
-                pass
-            else:
-                raise Exception("Specified verbosity not available.")
+                print("\nConstructing the matrix of type " + whichMatrix + ".")
         else:
             raise Exception("The requested matrix is not available to build for now.")
 
@@ -37,29 +43,35 @@ class MatrixBuilder:
 
         if self.verbosity == 'FULL':
             print("\nBuilding the matrix of type " + self.mat_type + ".")
-        elif self.verbosity == 'SILENT':
-            pass
-        else:
-            raise Exception("Specified verbosity not available.")
 
         if self.mat_type == 'laplace':
-
-            # Diagonals of the laplace matrix
-            main_diag = np.ones(self.N)*(-4.0)
-            side_diag = np.ones(self.N-1)
-            side_diag[np.arange(1,self.N)%4==0] = 0
-            up_down_diag = np.ones(self.N-3)
-            diagonals = [main_diag,side_diag,side_diag,up_down_diag,up_down_diag]
-
-            # Constructing the matrix through SciPy's sparse
-            self.mat = sparse.diags(diagonals, [0, -1, 1,self.nx,-self.nx], format="csr", dtype=float)
-            #self.mat = buf_mat.tocsr()
-
+            self.laplaceBuilder()
         else:
             raise Exception("The requested matrix is not available to build for now.")
 
 
-    def return_mat(self):
+    def laplaceBuilder(self):
+        # Diagonals of the laplace matrix
+        main_diag = np.ones(self.nx)*(-4.0)
+        side_diag = np.ones(self.nx-1)
+        side_diag[np.arange(1,self.nx)%4==0] = 0
+        up_down_diag = np.ones(self.nx-3)
+        diagonals = [main_diag,side_diag,side_diag,up_down_diag,up_down_diag]
+
+        # Constructing the matrix through SciPy's sparse
+        self.mat = sparse.diags(diagonals, [0, -1, 1,int(sqrt(self.nx)),-int(sqrt(self.nx))], format="csr", dtype=float)
+        #self.mat = buf_mat.tocsr()
+
+
+    def getDimsX(self):
+        return self.nx
+
+
+    def getDimsY(self):
+        return self.ny
+
+
+    def returnMat(self):
         return self.mat
 
 

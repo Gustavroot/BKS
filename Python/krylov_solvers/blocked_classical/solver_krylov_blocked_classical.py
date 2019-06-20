@@ -12,32 +12,38 @@ dir_path += '/'
 sys.path.append(dir_path + '../../')
 from solvers import Solver
 
-class SolverKrylovBlockedLi(Solver):
+class SolverKrylovBlockedClassical(Solver):
+
 
     def solve(self, A, B, x0):
+
+        # TODO: fix the way of processing/using <exit_code>
+
+        X = np.empty(B.shape)
 
         execTime = 0
 
         if self.measureExecTime:
             execTime = time.time()
 
-        warnings.warn("Solver <blocked_li> not implemented yet. Returning a zero vector.")
-        #solution, exit_code = np.zeros(A.getDimsX()), 0
-        solution, exit_code = np.zeros(B.shape), 0
+        if self.use_py_modules:
 
-        #if self.use_py_modules:
-        #    solution, exit_code = spla.gmres(A.returnMat(), b, x0, tol=self.tol, maxiter=self.maxiters)
-        #else:
-        #    warnings.warn("Own version of nonblocked GMRES not implemented yet. Returning a zero vector.")
-        #    solution, exit_code = np.zeros(A.N), 0
+            exit_code = 0
+            for i in range(B.shape[1]):
+                X[:,i],exit_code_x = spla.gmres(A.returnMat(), B[:,i], x0, tol=self.tol, maxiter=self.maxiters)
+                exit_code = (exit_code or exit_code_x)
+
+        else:
+            warnings.warn("Own version of nonblocked GMRES not implemented yet. Returning a zero vector.")
+            solution, exit_code = np.zeros(A.N), 0
 
         if self.measureExecTime:
             execTime = time.time() - execTime
 
         if exit_code==0:
-            self.last_solve_result = solution
+            self.last_solve_result = X
             if self.test_after_solve: self.test_solution(A,B)
-            return (solution,execTime)
+            return (X,execTime)
         elif exit_code:
             raise Exception("Tolerance not achieved !")
         else:
