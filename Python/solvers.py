@@ -62,7 +62,8 @@ class Solver:
 
         sol_is_correct = True
         for i in range(B.shape[1]):
-            sol_is_correct = np.allclose(A.returnMat().dot(self.last_solve_result[:,i]), B[:,i])
+            sol_is_correct_x = np.allclose(A.returnMat().dot(self.last_solve_result[:,i]), B[:,i])
+            sol_is_correct = (sol_is_correct and sol_is_correct_x)
 
         if self.verbosity == 'FULL':
             if sol_is_correct:
